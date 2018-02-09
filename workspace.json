@@ -1,7 +1,7 @@
 {
     "counterexamples": [],
     "created": "2018-01-22T22:43:16.220Z",
-    "description": "Let Watson help you make the perfect wine pairing.",
+    "description": "Let Watson help you find something.",
     "dialog_nodes": [
         {
             "conditions": "welcome",
@@ -15,8 +15,7 @@
                 "text": {
                     "selection_policy": "sequential",
                     "values": [
-                        "What's for dinner?",
-                        "What are you having for dinner?"
+                        "What can I help you find?"
                     ]
                 }
             },
@@ -38,11 +37,8 @@
                 "text": {
                     "selection_policy": "random",
                     "values": [
-                        "Prost!",
-                        "Salute!",
-                        "Kanpai!",
-                        "Salud!",
-                        "Cheers!"
+                        "Good luck!",
+                        "I hope that helps!"
                     ]
                 }
             },
@@ -64,8 +60,8 @@
                 "text": {
                     "selection_policy": "sequential",
                     "values": [
-                        "Tell me what's for dinner, and I'll give you a wine pairing.",
-                        "Name the dish, your main ingredients, or just give me a recipe, and I'll work out the perfect wine pairing to go along with it."
+                        "Let me know what you're looking for, and I'll help you find it.",
+                        "Tell me about what you're looking for, and I'll tell you about all the relevant things that I can."
                     ]
                 }
             },
@@ -891,7 +887,7 @@
             "minor_version": "2017-05-26"
         }
     },
-    "name": "Wine Pairing",
+    "name": "Finder",
     "updated": "2018-01-22T23:23:51.350Z",
     "workspace_id": "114cf118-71fd-466f-92ac-8ac64a3a0b56"
 }
