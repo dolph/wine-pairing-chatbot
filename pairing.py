@@ -2,16 +2,18 @@
 from __future__ import unicode_literals
 
 import copy
-import uuid
 import itertools
 import json
 import random
 
 
+# This is the data for the wine pairing combinatorics that we're going to
+# pre-compute as dialog nodes.
 d = None
 with open('winefolly.json', 'r') as f:
     d = json.loads(f.read())
 
+# This is the basis for the conversation that we're going to generate.
 workspace = None
 with open('workspace.json', 'r') as f:
     workspace = json.loads(f.read())
@@ -20,11 +22,12 @@ with open('workspace.json', 'r') as f:
 foods = list(d.keys())
 categories = list(d[foods[0]].keys())
 
+# The keys are how we track wines programmatically, and the values are how we
+# refer to those wines colloquially.
 CATEGORY_COLLOQUIAL = {
     'bold-red': 'bold red wine',
     'medium-red': 'medium red wine',
     'light-red': 'light red wine',
-    # 'rose': 'rosé',
     'rose': 'rose',
     'rich-white': 'rich white wine',
     'light-white': 'light white wine',
@@ -32,6 +35,8 @@ CATEGORY_COLLOQUIAL = {
     'sweet-white': 'sweet white wine',
     'dessert': 'dessert wine'
 }
+
+# These are like-sets of wine that we can use to produce more natural dialog.
 REDS = set([
     'light red wine',
     'medium red wine',
@@ -41,116 +46,68 @@ WHITES = set([
     'light white wine',
     'sweet white wine'])
 
+# These are specific varietals of the broader categories that we're using.
 VARIETALS = {
     'bold-red': [
         'Malbec',
-        # 'Shiraz',
         'Cabernet Sauvignon'],
-        # 'Mourvèdre',
-        # 'Bordeaux blend'],
-        # 'Meritage',
-        # 'Pinotage'],
     'medium-red': [
         'Merlot',
-        # 'Sangiovese',
         'Zinfandel'],
-        # 'Cabernet Franc',
-        # 'Tempranillo'],
-        # 'Nebbiolo',
-        # 'Barbera'],
-        # 'Côtes du Rhône blend'],
     'light-red': [
         'Pinot Noir',
         'Grenache'],
-        # 'Gamay',
-        # 'St. Laurent',
-        # 'Carignan',
-        # 'Counoise'],
     'rose': [
         'Provencal Rose',
         'White Zinfandel'],
-        # 'Rosé de Loire',
-        # 'Pinot Noir Rosé',
-        # 'Syrah Rosé',
-        # 'Garnacha Rosado'],
-        # 'Bandol Rosé',
-        # 'Tempranillo Rosé',
-        # 'Saignée method Rosé'],
     'rich-white': [
         'Chardonnay'],
-        # 'Sémillon',
-        # 'Viognier',
-        # 'Marsanne',
-        # 'Roussanne'],
     'light-white': [
         'Sauvignon blanc',
-        # 'Albarino',
-        # 'Pinot Blanc',
-        # 'Vermentino',
-        # 'Melon de Bourgogne',
-        # 'Garganega',
-        # 'Trebbiano',
         'Pinot Grigio'],
     'sparkling': [
         'Champagne',
         'Prosecco'],
-        # 'Cremant',
-        # 'Cava'],
-        # 'Metodo classico'],
     'sweet-white': [
         'Moscato',
         'Riesling'],
-        # 'Chenin Blanc',
-        # 'Gewurztraminer',
-        # 'a late-harvest white'],
-        # 'Alsatian Pinot Gris'],
     'dessert': [
         'Port',
         'Sherry'],
-        # 'Madeira'],
-        # 'Vin Santo',
-        # 'Pedro Ximénez']
 }
 
 
+# This is the basis for the Watson conversation dialog nodes that we'll be
+# producing. There are additional keys that we'll populate for individual node
+# instances, but we'll always start with a copy of this template.
 DIALOG_NODE_TEMPLATE = {
-    # Normally, milliseconds since UNIX epoch, e.g. : "node_2_1515535851961"
-    # "dialog_node": None,
-    # "title": None,
-    # "conditions": None,
-    # "context": None,
-    # "description": None,
     "output": {
         "text": {
             "selection_policy": "sequential",
             "values": []
         }
     },
-    # "previous_sibling": None,
     "next_step": {
         "behavior": "jump_to",
         "dialog_node": "node_3_1515535851961",
         "selector": "body"
-    },
-    # "parent": None,
-    # "type": "standard",
-    # "metadata": {},
-    # "created": "2018-01-01T00:00:00.000Z",
-    # "updated": "2018-01-01T00:00:00.000Z"
+    }
 }
 
+# The initial value here is based on the established conversation dialog tree,
+# and we build from there, changing this value as we create new nodes.
 PREVIOUS_NODE_ID = "Welcome"
 
-
-def new_node_id():
-    # return 'node_2_%s' % uuid.uuid4().hex[:6]
-    return 'node_2_%d' % random.randrange(1111111111111, 9999999999999)
 
 def build_node(entities, text):
     global PREVIOUS_NODE_ID
 
+    # Start with a copy of our template.
     node = copy.deepcopy(DIALOG_NODE_TEMPLATE)
-    node['dialog_node'] = new_node_id()
+
+    # Populate the values that make this dialog node unique.
+    node['dialog_node'] = 'node_2_%d' % (
+        random.randrange(1111111111111, 9999999999999))
     node['conditions'] = ' && '.join(entities)
     node['output']['text']['values'].append(text)
 
@@ -209,7 +166,11 @@ NODES = []
 
 # We're going to pre-compute results for a certain number of ingredients.
 for number_of_foods in range(4, 0, -1):
+
+    # Track the number of iterations so that we can fine tune the size of the
+    # output.
     iteration = 0
+
     # selected_foods will be the foods that we're making a pairing against.
     for selected_foods in itertools.combinations(foods, number_of_foods):
         iteration += 1
@@ -225,8 +186,6 @@ for number_of_foods in range(4, 0, -1):
 
         primary = [
             rating[0] for rating in ratings if rating[1] == ratings[0][1]]
-        alternatives = [
-            rating[0] for rating in ratings if rating[1] == ratings[0][1] - 1]
 
         primary_colloquials = set()
         primary_variatals = set()
@@ -235,32 +194,23 @@ for number_of_foods in range(4, 0, -1):
             for variatal in VARIETALS[x]:
                 primary_variatals.add(variatal)
 
-        alternative_colloquials = set()
-        for x in alternatives:
-            alternative_colloquials.add(CATEGORY_COLLOQUIAL[x])
-
-        response = ''
-        """
         if len(primary_colloquials) == len(CATEGORY_COLLOQUIAL):
-            response += (
+            response = (
                 'I would recommend any wine for that. You literally can\'t go '
                 'wrong.')
         else:
-        """
-        response += 'I would recommend a {0}, such as {1}.'.format(
-            oxford_or(summarize_wine_categories(primary_colloquials)),
-            oxford_or(primary_variatals))
-
-        if False and alternative_colloquials:
-            response += (
-                ' You could alternatively go for a {0}.'.format(
-                    oxford_or(summarize_wine_categories(alternative_colloquials))))
+            response = 'I would recommend a {0}, such as {1}.'.format(
+                oxford_or(summarize_wine_categories(primary_colloquials)),
+                oxford_or(primary_variatals))
 
         node = build_node(selected_foods, response)
         workspace['dialog_nodes'].append(node)
 
-        # print(response)
-    # print(number_of_foods)
 
+# 1 is a magic value here, based on the established conversation dialog tree
+# that we have appended to, which corresponds to the "cheers!" node. We set the
+# previous sibling to be the last dialog node that we created.
 workspace['dialog_nodes'][1]['previous_sibling'] = PREVIOUS_NODE_ID
+
+# Output compressed JSON to stdout. This can be redirected to a JSON file.
 print(json.dumps(workspace, indent=None, separators=(',', ':')))
